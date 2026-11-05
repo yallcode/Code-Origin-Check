@@ -155,8 +155,10 @@ function lineRef(lines) {
   return "line" + (n.length > 1 ? "s " : " ") + n.slice(0, 6).join(", ") + (n.length > 6 ? " ..." : "");
 }
 
-function render(res) {
+function render(res, label, scroll) {
+  activeSig = null;
   $("result").hidden = false;
+  $("fname").textContent = label || "";
   $("verdict").textContent = verdictFor(res.score);
   const na = res.S.filter(s => s.dir === "ai").length, nh = res.S.filter(s => s.dir === "hu").length;
   $("summary").textContent = res.S.length
@@ -194,7 +196,11 @@ function render(res) {
     row.append(el("span", "n", String(i + 1)), el("span", null, line || " "));
     box.append(row);
   });
-  $("result").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  if (scroll !== false) goTo($("result"));
+}
+
+function goTo(node) {
+  node.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
 }
 
 let activeSig = null;
@@ -210,15 +216,118 @@ function focusSig(k, btn) {
 $("run").addEventListener("click", () => {
   const v = $("src").value;
   if (!v.trim()) { $("src").focus(); return; }
-  activeSig = null;
-  render(analyze(v));
+  $("files").hidden = true;
+  render(analyze(v), "");
 });
 $("s1").addEventListener("click", () => { $("src").value = SAMPLE_AI; $("run").click(); });
 $("s2").addEventListener("click", () => { $("src").value = SAMPLE_HUMAN; $("run").click(); });
+const CODE_EXT = /\.(py|js|mjs|ts|jsx|tsx|java|c|h|cpp|hpp|cs|go|rs|rb|php|swift|kt|sh|html|css|sql|lua|txt)$/i;
+const SKIP_DIR = /(^|\/)(node_modules|\.git|dist|build|vendor|__pycache__)\//;
+const MAX_FILES = 30;
+
+function readText(f) {
+  return new Promise(ok => {
+    const fr = new FileReader();
+    fr.onload = () => ok(String(fr.result));
+    fr.onerror = () => ok(null);
+    fr.readAsText(f);
+  });
+}
+
+async function loadFiles(list, fromFolder) {
+  let all = [...list];
+  if (fromFolder) all = all.filter(f => CODE_EXT.test(f.name) && !SKIP_DIR.test(f.webkitRelativePath || ""));
+  const skipped = [], keep = [], done = [];
+  for (const f of all) {
+    if (keep.length >= MAX_FILES) skipped.push(f.name + " (over the " + MAX_FILES + " file limit)");
+    else if (f.size > 500000) skipped.push(f.name + " (over 500 KB)");
+    else keep.push(f);
+  }
+  for (const f of keep) {
+    const text = await readText(f);
+    if (text == null || text.includes("\0")) skipped.push(f.name + " (not text)");
+    else if (!text.trim()) skipped.push(f.name + " (empty)");
+    else done.push({ name: f.webkitRelativePath || f.name, text, res: analyze(text) });
+  }
+  showFiles(done, skipped);
+}
+
+function showFiles(done, skipped) {
+  if (!done.length) {
+    $("files").hidden = true;
+    alert("Couldn't find any readable code files." + (skipped.length ? "\nSkipped: " + skipped.join(", ") : ""));
+    return;
+  }
+  if (done.length === 1 && !skipped.length) {
+    $("src").value = done[0].text;
+    $("run").click();
+    return;
+  }
+  done.sort((a, b) => b.res.score - a.res.score);
+  const total = done.reduce((s, d) => s + d.res.nb, 0);
+  const avg = Math.round(done.reduce((s, d) => s + d.res.score * d.res.nb, 0) / total);
+  const ai = done.filter(d => d.res.score >= 55).length;
+  const hu = done.filter(d => d.res.score <= 44).length;
+  $("filesSummary").textContent = `${done.length} files checked, most AI-looking first. ${ai} lean AI, ${done.length - ai - hu} unclear, ${hu} lean human. Overall score ${avg}, weighted by file size, so don't take it too seriously.`;
+  $("skipped").hidden = !skipped.length;
+  $("skipped").textContent = "Skipped: " + skipped.join(", ") + ".";
+
+  const ul = $("fileList");
+  ul.replaceChildren();
+  done.forEach(d => {
+    const li = el("li"), b = el("button", "sig frow " + (d.res.score >= 55 ? "ai" : d.res.score <= 44 ? "hu" : ""));
+    b.type = "button";
+    const left = el("div");
+    left.append(el("b", null, d.name), el("span", null, `${verdictFor(d.res.score)} (score ${d.res.score}, ${d.res.nb} lines)`));
+    const mini = el("div", "mini"), tick = el("i");
+    tick.style.left = d.res.score + "%";
+    mini.append(tick);
+    b.append(left, mini);
+    b.addEventListener("click", () => {
+      ul.querySelectorAll(".sig").forEach(x => x.classList.remove("sel"));
+      b.classList.add("sel");
+      render(d.res, d.name, false);
+      goTo($("result"));
+    });
+    li.append(b);
+    ul.append(li);
+  });
+  ul.querySelector(".sig").classList.add("sel");
+  render(done[0].res, done[0].name, false);
+  $("files").hidden = false;
+  goTo($("files"));
+}
+
 $("file").addEventListener("change", e => {
-  const f = e.target.files[0]; if (!f) return;
-  if (f.size > 500000) { alert("That file is over 500 KB. Paste the part you want checked instead."); return; }
-  const fr = new FileReader();
-  fr.onload = () => { $("src").value = fr.result; $("run").click(); };
-  fr.readAsText(f);
+  const list = [...e.target.files];
+  e.target.value = "";
+  if (list.length) loadFiles(list, false);
 });
+$("folder").addEventListener("change", e => {
+  const list = [...e.target.files];
+  e.target.value = "";
+  if (list.length) loadFiles(list, true);
+});
+$("src").addEventListener("dragover", e => e.preventDefault());
+$("src").addEventListener("drop", e => {
+  if (e.dataTransfer.files.length) {
+    e.preventDefault();
+    loadFiles([...e.dataTransfer.files], false);
+  }
+});
+
+// dark mode
+const root = document.documentElement;
+function theme() {
+  return root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+}
+function paintToggle() {
+  $("theme").textContent = theme() === "dark" ? "Light mode" : "Dark mode";
+}
+$("theme").addEventListener("click", () => {
+  const next = theme() === "dark" ? "light" : "dark";
+  root.dataset.theme = next;
+  try { localStorage.setItem("theme", next); } catch (e) {}
+  paintToggle();
+});
+paintToggle();

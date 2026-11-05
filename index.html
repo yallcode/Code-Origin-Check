@@ -8,10 +8,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <main>
+  <button type="button" id="theme" class="theme">Dark mode</button>
   <h1>Does this code look machine-written?</h1>
   <p class="lede">Paste some code or open a file and see how it scores from human to AI, plus the lines and habits behind the score. It runs in your browser, nothing gets uploaded.</p>
 
@@ -19,14 +21,23 @@
   <textarea id="src" spellcheck="false" placeholder="Paste your code here (Python, JavaScript, Java, whatever)"></textarea>
   <div class="bar">
     <button class="go" id="run" type="button">Check code</button>
-    <label class="file">Open file<input type="file" id="file" accept=".py,.js,.ts,.jsx,.tsx,.java,.c,.cpp,.cs,.go,.rs,.rb,.php,.swift,.kt,.sh,.html,.css,.txt"></label>
+    <label class="file">Open files<input type="file" id="file" multiple accept=".py,.js,.ts,.jsx,.tsx,.java,.c,.cpp,.cs,.go,.rs,.rb,.php,.swift,.kt,.sh,.html,.css,.txt"></label>
+    <label class="file">Open folder<input type="file" id="folder" webkitdirectory></label>
     <button type="button" id="s1">Try an AI-style sample</button>
     <button type="button" id="s2">Try a human-style sample</button>
     <span class="spacer"></span>
     <span class="privacy">All local.</span>
   </div>
 
+  <section id="files" hidden>
+    <h2 class="codehead">Files</h2>
+    <p id="filesSummary" class="lede" style="margin:0 0 .75rem"></p>
+    <div class="warn" id="skipped" hidden style="margin:0 0 .75rem"></div>
+    <ul class="sigs" id="fileList"></ul>
+  </section>
+
   <section id="result" hidden aria-live="polite">
+    <p class="fname" id="fname"></p>
     <p class="verdict" id="verdict"></p>
     <p id="summary" class="lede" style="margin:0"></p>
     <div class="spectrum"><div class="marker" id="marker" style="left:50%"></div></div>

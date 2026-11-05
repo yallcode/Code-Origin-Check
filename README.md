@@ -2,6 +2,8 @@
 
 A little website that looks at some code and tells you if it reads more like AI wrote it or a person did. You paste code (or open a file), it gives a score from human to AI, and it shows which lines and habits made it say that.
 
+You can check one pasted snippet, a bunch of files at once, or a whole folder. There is a dark mode too (it follows your system, and the button in the corner switches it).
+
 It all runs in the browser. No backend, no uploads.
 
 ## It's a guess, not proof
@@ -34,6 +36,14 @@ Points toward human:
 - tabs and spaces mixed together
 
 Every signal adds or removes points from a starting score of 50. The final score stays between 8 and 92 so it never acts 100% sure, and short snippets get pulled toward the middle.
+
+## Checking more than one file
+
+- "Open files" lets you pick several files at once, or you can drag them onto the text box
+- "Open folder" scans a whole folder and only picks up code files (it skips things like `node_modules` and `.git`)
+- you get a list of files with the most AI-looking ones first, and clicking one shows its full breakdown
+- limits: 30 files per go and 500 KB per file. Anything skipped gets listed on the page
+- the overall score is weighted by file size and is only a rough summary
 
 ## Files
 
@@ -84,7 +94,6 @@ If you want to change the verdict wording or the cutoffs, look at `verdictFor()`
 - different rules for each language
 - a link to share a result
 - showing how many points each signal added
-- a dark theme
 
 ## Credits
 
