@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Origin Check</title>
+<meta name="description" content="Paste code and see which signals point toward AI-generated or human-written, with a plain explanation. Runs entirely in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Does this code look machine-written?</h1>
+  <p class="lede">Paste some code or open a file and see how it scores from human to AI, plus the lines and habits behind the score. It runs in your browser, nothing gets uploaded.</p>
+
+  <label for="src" hidden>Code to check</label>
+  <textarea id="src" spellcheck="false" placeholder="Paste your code here (Python, JavaScript, Java, whatever)"></textarea>
+  <div class="bar">
+    <button class="go" id="run" type="button">Check code</button>
+    <label class="file">Open file<input type="file" id="file" accept=".py,.js,.ts,.jsx,.tsx,.java,.c,.cpp,.cs,.go,.rs,.rb,.php,.swift,.kt,.sh,.html,.css,.txt"></label>
+    <button type="button" id="s1">Try an AI-style sample</button>
+    <button type="button" id="s2">Try a human-style sample</button>
+    <span class="spacer"></span>
+    <span class="privacy">All local.</span>
+  </div>
+
+  <section id="result" hidden aria-live="polite">
+    <p class="verdict" id="verdict"></p>
+    <p id="summary" class="lede" style="margin:0"></p>
+    <div class="spectrum"><div class="marker" id="marker" style="left:50%"></div></div>
+    <div class="ends"><span>Human-written</span><span id="scoreTxt"></span><span>AI-generated</span></div>
+    <div class="warn" id="warn" hidden></div>
+    <div class="cols">
+      <div><h2>Points toward AI</h2><ul class="sigs" id="aiList"></ul></div>
+      <div><h2>Points toward human</h2><ul class="sigs" id="huList"></ul></div>
+    </div>
+    <h2 class="codehead">Your code, marked up</h2>
+    <p class="privacy" style="margin:-.3rem 0 .6rem">Select a signal above to focus its lines.</p>
+    <div class="code" id="code"></div>
+  </section>
+
+  <details>
+    <summary>How reliable is this?</summary>
+    <p>Not very, to be honest. It can't prove anything. It just looks for habits that show up a lot in AI code (comments that repeat the code, docblocks on every function, emoji in logs, boilerplate error handling) and habits that show up a lot in human code (leftover debug prints, commented-out code, issue links, annoyed comments). Good developers write clean code too, and people clean up AI output all the time, so use the score as a reason to look closer and not as proof. Short snippets are the least reliable.</p>
+  </details>
+</main>
+
+<script src="script.js" defer></script>
+</body>
+</html>
